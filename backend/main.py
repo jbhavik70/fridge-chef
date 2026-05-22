@@ -161,10 +161,24 @@ async def create_booking(booking: BookingCreate):
         return dict(row)
 
 @app.get("/api/bookings")
-async def get_bookings():
+async def get_bookings(ids: str | None = None):
     with get_db_conn() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM bookings ORDER BY date ASC, time ASC")
+        if ids is not None:
+            id_list = []
+            for item in ids.split(","):
+                item = item.strip()
+                if item.isdigit():
+                    id_list.append(int(item))
+            if not id_list:
+                return []
+            placeholders = ",".join("?" for _ in id_list)
+            cursor.execute(
+                f"SELECT * FROM bookings WHERE id IN ({placeholders}) ORDER BY date ASC, time ASC",
+                id_list
+            )
+        else:
+            cursor.execute("SELECT * FROM bookings ORDER BY date ASC, time ASC")
         rows = cursor.fetchall()
         
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M")

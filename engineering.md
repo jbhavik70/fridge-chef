@@ -101,6 +101,9 @@ interface RecipeRequest {
   ingredients: string;               // Text from input field
   dietary_preferences?: string[];    // Array of active chips (e.g. ["Vegan", "Gluten-Free"])
   meal_type?: string;                // Active meal segment button (e.g. "Dinner")
+  cooking_style?: string;            // Active cooking style segment (e.g. "Comfort Food")
+  equipment?: string[];              // Array of active equipment chips (e.g. ["Stove"])
+  time_limit?: string;               // Active time limit segment (e.g. "Under 30 mins")
 }
 ```
 
@@ -125,7 +128,7 @@ interface RecipeResponse {
   pantry_staples?: string[];
   grandma_secret_tip?: string;
   instructions?: string[];           // Normalized step lists (from steps)
-  imageUrl: string;                  // Base64-encoded image string or empty string
+  imageUrl: string;                  // Base64-encoded image string, Unsplash fallback, or empty string
 }
 ```
 
@@ -156,6 +159,40 @@ interface RecipeResponse {
 `DELETE /api/bookings/{id}`
 - **Response Code:** `200 OK` on success, `404 Not Found` if the booking does not exist.
 - **Response Body (Success):** `{"message": "Booking cancelled successfully"}`
+
+### 5.3 Local Storage Schema (Saved Recipes)
+Saved recipes are serialized and persisted client-side in the browser's `localStorage` under the key `saved_recipes`.
+- **Value Format:** A JSON array of `SavedRecipe` objects:
+```typescript
+interface SavedRecipe {
+  id: string;                        // Unique client-side generated UUID or timestamp-based ID
+  recipe_title: string;              // Recipe title
+  imageUrl: string;                  // Image URL (Base64 data URI or Unsplash fallback)
+  prep_time_minutes: number;
+  cook_time_minutes: number;
+  difficulty_level: string;
+  ingredients: Array<{
+    name: string;
+    quantity_per_serving: number;
+    unit: string;
+  }>;
+  ingredientsList?: string[];
+  instructions: string[];
+  grandma_intro: string;
+  grandma_secret_tip?: string;
+  pantry_staples?: string[];
+  saved_at: string;                  // ISO 8601 timestamp when saved
+}
+```
+
+### 5.4 Client-Side Timer Subsystem
+Interactive timers operate entirely on the client side inside the DOM state:
+- **Duration Parsing:** Steps are scanned upon recipe rendering using a regex pattern (e.g. `/(\d+)\s*(min|minute)/i`) to detect time constraints. If none is found, the timer defaults to `5` minutes.
+- **State Machine:**
+  - *Duration:* Managed in seconds.
+  - *Control States:* Running (`setInterval` active), Paused (interval cleared, remaining time preserved), Canceled (widget hidden, time reset), Expired (timer reaches 0).
+- **Chime Synthesis:** Triggered on expiration using the browser's **Web Audio API** to synthesize a cozy sound. This avoids external audio assets.
+  - *Synthesizer Node Graph:* `OscillatorNode` (sine/triangle wave at 880Hz/1320Hz) -> `GainNode` (exponential decay over 1.2s) -> `AudioContext.destination`.
 
 ---
 

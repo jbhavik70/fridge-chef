@@ -78,6 +78,9 @@ let currentRecipeIngredients = [];
 let currentServings = 2;
 
 // Scoped selectors for Chef's Console
+const segmentBtns = document.querySelectorAll('.segment-btn');
+const chipBtns = document.querySelectorAll('.chip-btn');
+
 const mealTypeBtns = document.querySelectorAll('.meal-type-selector .segment-btn');
 let selectedMealType = '';
 mealTypeBtns.forEach(btn => {
@@ -325,6 +328,16 @@ function renderRecipe(data) {
   // Clear any active timers when rendering a new recipe
   clearActiveTimer();
 
+  // Reset Save Recipe button state based on whether it is already saved
+  const isSaved = checkIsRecipeSaved(data.recipe_title || data.title);
+  if (isSaved) {
+    saveRecipeBtn.innerHTML = '<span class="btn-icon">💝</span> Saved!';
+    saveRecipeBtn.disabled = true;
+  } else {
+    saveRecipeBtn.innerHTML = '<span class="btn-icon">💾</span> Save to Recipe Box';
+    saveRecipeBtn.disabled = false;
+  }
+
   // Steps Instructions List
   recipeInstructions.innerHTML = '';
   const steps = data.steps || data.instructions || [];
@@ -463,13 +476,20 @@ function resetPage() {
   ingredientsInput.value = '';
   selectedDietary = [];
   selectedMealType = '';
+  selectedCookingStyle = '';
+  selectedTimeLimit = '';
+  selectedEquipment = [];
+  
+  clearActiveTimer();
   
   // reset selector classes
   segmentBtns.forEach(btn => {
     btn.classList.remove('active');
     btn.disabled = false;
-    if (btn.getAttribute('data-meal') === '') {
-      btn.classList.add('active'); // reset to 'Any'
+    if (btn.getAttribute('data-meal') === '' || 
+        btn.getAttribute('data-style') === '' || 
+        btn.getAttribute('data-time') === '') {
+      btn.classList.add('active'); // reset to defaults
     }
   });
   
@@ -589,7 +609,15 @@ bookingGuests.addEventListener('input', () => {
 
 bookBtn.addEventListener('click', () => {
   // Pre-fill leftovers from fridge input, and recipe title
-  bookingLeftovers.value = ingredientsInput.value.trim();
+  let leftovers = ingredientsInput.value.trim();
+  if (!leftovers && currentRecipeData) {
+    if (currentRecipeData.originalIngredientsInput) {
+      leftovers = currentRecipeData.originalIngredientsInput;
+    } else if (currentRecipeData.ingredients) {
+      leftovers = currentRecipeData.ingredients.map(i => i.name).join(', ');
+    }
+  }
+  bookingLeftovers.value = leftovers;
   bookingRecipe.value = recipeTitle.textContent.trim();
   
   // Set guests count based on servings count scaler
@@ -652,6 +680,13 @@ bookingForm.addEventListener('submit', async (e) => {
     // Transition to success checkmark screen
     modalFormContent.classList.add('hidden');
     
+    // Save booking ID to localStorage for privacy isolation
+    let myBookings = JSON.parse(localStorage.getItem('myBookings') || '[]');
+    if (!myBookings.includes(data.id)) {
+      myBookings.push(data.id);
+      localStorage.setItem('myBookings', JSON.stringify(myBookings));
+    }
+    
     // Insert ticket summary
     receiptSummaryContent.innerHTML = `
       <div class="receipt-ticket">
@@ -695,7 +730,12 @@ successDoneBtn.addEventListener('click', () => {
 // ==========================================
 async function loadReservations() {
   try {
-    const res = await fetch('/api/bookings');
+    const myBookings = JSON.parse(localStorage.getItem('myBookings') || '[]');
+    if (myBookings.length === 0) {
+      renderReservationsList([]);
+      return;
+    }
+    const res = await fetch(`/api/bookings?ids=${myBookings.join(',')}`);
     if (!res.ok) {
       throw new Error("Could not load your reservations, dear.");
     }
@@ -822,6 +862,11 @@ reservationsList.addEventListener('click', async (e) => {
         if (!res.ok) {
           throw new Error("Oh dear, I couldn't cancel the reservation. Please try again.");
         }
+        // Remove from local storage
+        let myBookings = JSON.parse(localStorage.getItem('myBookings') || '[]');
+        myBookings = myBookings.filter(id => id != bookingId);
+        localStorage.setItem('myBookings', JSON.stringify(myBookings));
+        
         showToast("Reservation cancelled successfully, dear.");
         loadReservations();
       } catch (err) {
@@ -833,3 +878,333 @@ reservationsList.addEventListener('click', async (e) => {
 
 // Periodic Countdown Updater
 setInterval(updateCountdowns, 5000);
+
+// ==========================================
+// Interactive Step Timer Functions
+// ==========================================
+let activeTimerInterval = null;
+let activeTimerRemaining = 0;
+let activeTimerWidget = null;
+let activeTimerButton = null;
+let activeStepElement = null;
+
+function clearActiveTimer() {
+  if (activeTimerInterval) {
+    clearInterval(activeTimerInterval);
+    activeTimerInterval = null;
+  }
+  if (activeTimerWidget) {
+    activeTimerWidget.classList.add('hidden');
+  }
+  if (activeTimerButton) {
+    activeTimerButton.classList.remove('hidden');
+  }
+  if (activeStepElement) {
+    activeStepElement.classList.remove('timer-pulse', 'paused', 'completed');
+  }
+  activeTimerRemaining = 0;
+  activeTimerWidget = null;
+  activeTimerButton = null;
+  activeStepElement = null;
+}
+
+function updateTimerDisplay(displayEl, secs) {
+  const m = Math.floor(secs / 60).toString().padStart(2, '0');
+  const s = (secs % 60).toString().padStart(2, '0');
+  displayEl.textContent = `${m}:${s}`;
+}
+
+function startTimerCountdown(displayEl) {
+  if (activeTimerInterval) {
+    clearInterval(activeTimerInterval);
+  }
+  activeTimerInterval = setInterval(() => {
+    if (activeTimerRemaining > 0) {
+      activeTimerRemaining--;
+      updateTimerDisplay(displayEl, activeTimerRemaining);
+      
+      if (activeTimerRemaining === 0) {
+        clearInterval(activeTimerInterval);
+        activeTimerInterval = null;
+        
+        displayEl.textContent = "Done! 🔔";
+        if (activeStepElement) {
+          activeStepElement.classList.remove('timer-pulse', 'paused');
+          activeStepElement.classList.add('completed');
+        }
+        playTimerChime();
+      }
+    }
+  }, 1000);
+}
+
+function playTimerChime() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    // First tone (higher pitch, sweet C5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(523.25, ctx.currentTime);
+    gain1.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.6);
+    
+    // Second tone (cozy progression E5)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(659.25, ctx.currentTime + 0.25);
+    gain2.gain.setValueAtTime(0, ctx.currentTime);
+    gain2.gain.setValueAtTime(0.15, ctx.currentTime + 0.25);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.95);
+    
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    
+    osc2.start(ctx.currentTime + 0.25);
+    osc2.stop(ctx.currentTime + 0.95);
+  } catch (err) {
+    console.error("Audio chime failed to play:", err);
+  }
+}
+
+// Timer delegation listener on #recipe-instructions
+recipeInstructions.addEventListener('click', (e) => {
+  const target = e.target;
+  const stepLi = target.closest('.instruction-step');
+  if (!stepLi) return;
+  
+  const timerWrapper = stepLi.querySelector('.step-timer-wrapper');
+  if (!timerWrapper) return;
+  
+  const timerBtn = timerWrapper.querySelector('.step-timer-btn');
+  const timerWidget = timerWrapper.querySelector('.step-timer-widget');
+  const display = timerWrapper.querySelector('.timer-display');
+  
+  // Start
+  if (target.closest('.step-timer-btn')) {
+    clearActiveTimer();
+    
+    const durationMins = parseInt(timerBtn.getAttribute('data-duration'), 10) || 5;
+    activeTimerRemaining = durationMins * 60;
+    activeTimerButton = timerBtn;
+    activeTimerWidget = timerWidget;
+    activeStepElement = stepLi;
+    
+    activeTimerButton.classList.add('hidden');
+    activeTimerWidget.classList.remove('hidden');
+    activeStepElement.classList.add('timer-pulse');
+    activeStepElement.classList.remove('paused', 'completed');
+    
+    const playPauseBtn = activeTimerWidget.querySelector('.play-pause-btn');
+    if (playPauseBtn) playPauseBtn.textContent = '⏸️';
+    
+    updateTimerDisplay(display, activeTimerRemaining);
+    startTimerCountdown(display);
+  }
+  
+  // Play/Pause
+  else if (target.closest('.play-pause-btn')) {
+    if (activeTimerInterval) {
+      clearInterval(activeTimerInterval);
+      activeTimerInterval = null;
+      target.textContent = '▶️';
+      activeStepElement.classList.add('paused');
+      activeStepElement.classList.remove('timer-pulse');
+    } else {
+      target.textContent = '⏸️';
+      activeStepElement.classList.remove('paused');
+      activeStepElement.classList.add('timer-pulse');
+      startTimerCountdown(display);
+    }
+  }
+  
+  // Reset
+  else if (target.closest('.reset-btn')) {
+    const durationMins = parseInt(timerBtn.getAttribute('data-duration'), 10) || 5;
+    activeTimerRemaining = durationMins * 60;
+    updateTimerDisplay(display, activeTimerRemaining);
+    
+    const playPauseBtn = timerWidget.querySelector('.play-pause-btn');
+    if (playPauseBtn) playPauseBtn.textContent = '⏸️';
+    activeStepElement.classList.remove('paused', 'completed');
+    activeStepElement.classList.add('timer-pulse');
+    
+    if (activeTimerInterval) {
+      clearInterval(activeTimerInterval);
+    }
+    startTimerCountdown(display);
+  }
+  
+  // Cancel
+  else if (target.closest('.cancel-btn')) {
+    clearActiveTimer();
+  }
+});
+
+// ==========================================
+// Saved Recipes LocalStorage Logic
+// ==========================================
+function checkIsRecipeSaved(title) {
+  if (!title) return false;
+  const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+  return saved.some(r => (r.recipe_title || r.title) === title);
+}
+
+// Event listener on saveRecipeBtn
+saveRecipeBtn.addEventListener('click', () => {
+  if (!currentRecipeData) {
+    showToast("Generate a recipe first, dear!");
+    return;
+  }
+  const title = currentRecipeData.recipe_title || currentRecipeData.title;
+  if (!title) return;
+  
+  let saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+  if (saved.some(r => (r.recipe_title || r.title) === title)) {
+    showToast("This recipe is already in your Recipe Box, dear!");
+    return;
+  }
+  
+  const recipeToSave = { ...currentRecipeData };
+  recipeToSave.originalIngredientsInput = ingredientsInput.value.trim();
+  if (!recipeToSave.id) {
+    recipeToSave.id = 'recipe_' + Date.now();
+  }
+  recipeToSave.savedAt = new Date().toISOString();
+  
+  saved.push(recipeToSave);
+  localStorage.setItem('savedRecipes', JSON.stringify(saved));
+  
+  saveRecipeBtn.innerHTML = '<span class="btn-icon">💝</span> Saved!';
+  saveRecipeBtn.disabled = true;
+  showToast("Saved to Grandma's Wooden Recipe Box! 👵🏼📦");
+});
+
+function loadSavedRecipes() {
+  savedRecipesList.innerHTML = '';
+  const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+  
+  if (saved.length === 0) {
+    savedRecipesList.innerHTML = `
+      <div class="empty-recipe-box">
+        <p>Your recipe box is empty, dear. Generate a recipe and save it to keep it here!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  saved.forEach(recipe => {
+    const card = document.createElement('div');
+    card.className = 'saved-recipe-item';
+    
+    const title = recipe.recipe_title || recipe.title || "Grandma's Comfort Dish";
+    const prep = recipe.prep_time_minutes || 0;
+    const cook = recipe.cook_time_minutes || 0;
+    const diff = recipe.difficulty_level || "Cozy Classic";
+    
+    let metaParts = [];
+    if (prep && cook) {
+      metaParts.push(`Prep: ${prep} mins • Cook: ${cook} mins`);
+    } else if (prep) {
+      metaParts.push(`Prep: ${prep} mins`);
+    } else if (cook) {
+      metaParts.push(`Cook: ${cook} mins`);
+    }
+    metaParts.push(diff);
+    const metaStr = metaParts.join(' • ');
+    
+    const imageUrl = recipe.imageUrl || '/assets/logo.png';
+    
+    card.innerHTML = `
+      <img src="${imageUrl}" alt="${title}" class="saved-recipe-thumb" onerror="this.src='/assets/logo.png'">
+      <div class="saved-recipe-details">
+        <div>
+          <h3 class="saved-recipe-title">${title}</h3>
+          <p class="saved-recipe-meta">${metaStr}</p>
+        </div>
+        <div class="saved-recipe-actions">
+          <button type="button" class="cook-again-btn" data-id="${recipe.id}">Cook Again 🍳</button>
+          <button type="button" class="book-saved-btn" data-id="${recipe.id}">Book Prep 📅</button>
+          <button type="button" class="delete-saved-btn" data-id="${recipe.id}">Delete 🗑️</button>
+        </div>
+      </div>
+    `;
+    
+    savedRecipesList.appendChild(card);
+  });
+}
+
+// Saved Recipes List Action Delegation
+savedRecipesList.addEventListener('click', (e) => {
+  const target = e.target;
+  const recipeId = target.getAttribute('data-id');
+  if (!recipeId) return;
+  
+  const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+  const recipe = saved.find(r => r.id === recipeId);
+  if (!recipe) return;
+  
+  // Cook Again
+  if (target.classList.contains('cook-again-btn')) {
+    tabKitchen.click();
+    
+    currentRecipeData = recipe;
+    if (recipe.originalIngredientsInput) {
+      ingredientsInput.value = recipe.originalIngredientsInput;
+    } else if (recipe.ingredients) {
+      ingredientsInput.value = recipe.ingredients.map(i => i.name).join(', ');
+    }
+    renderRecipe(recipe);
+    
+    inputSection.classList.add('hidden');
+    warningCard.classList.add('hidden');
+    resultSection.classList.remove('hidden');
+    
+    recipeTitle.focus();
+  }
+  
+  // Book Preparation
+  else if (target.classList.contains('book-saved-btn')) {
+    const title = recipe.recipe_title || recipe.title || "Grandma's Comfort Dish";
+    
+    bookingName.value = '';
+    bookingEmail.value = '';
+    bookingPhone.value = '';
+    bookingDate.value = '';
+    bookingTime.value = '';
+    bookingNotes.value = '';
+    
+    bookingRecipe.value = title;
+    const leftoversList = recipe.ingredients ? recipe.ingredients.map(i => i.name).join(', ') : '';
+    bookingLeftovers.value = leftoversList;
+    
+    currentRecipeData = recipe;
+    currentServings = recipe.servings_default || 2;
+    bookingGuests.value = currentServings;
+    guestCountVal.textContent = currentServings;
+    
+    bookingModal.classList.remove('hidden');
+    bookingName.focus();
+  }
+  
+  // Delete
+  else if (target.classList.contains('delete-saved-btn')) {
+    const title = recipe.recipe_title || recipe.title || "Grandma's Comfort Dish";
+    if (confirm(`Are you sure you want to remove "${title}" from your Recipe Box, dear? Grandma can always write it down again for you.`)) {
+      const updated = saved.filter(r => r.id !== recipeId);
+      localStorage.setItem('savedRecipes', JSON.stringify(updated));
+      loadSavedRecipes();
+      showToast("Recipe removed from your Recipe Box, dear.");
+    }
+  }
+});

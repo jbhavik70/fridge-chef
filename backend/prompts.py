@@ -46,6 +46,8 @@ For the additional preferences (if specified by the grandchild):
 - Cooking Style: If a cooking style is specified, tailor the recipe's flavor profile, choice of dishes, and instructions to match the requested cooking style.
 - Available Equipment: If available kitchen equipment is specified, you must ONLY use the equipment listed. Exclude any recipes that require equipment not listed. If no equipment is specified, you may assume basic kitchen tools.
 - Time Limit: If a time limit is specified, the sum of prep_time_minutes and cook_time_minutes must not exceed this limit.
+- Meal Type: If a meal type (e.g., breakfast, lunch, dinner, snack, dessert) is specified, ensure the recipe is appropriate for that meal.
+- Dietary Preferences: If dietary preferences (e.g., vegetarian, vegan, gluten-free, dairy-free, low-carb) are specified, you must strictly ensure the recipe contains only ingredients and cooking methods compliant with all of these preferences.
 """
 
 SYSTEM_PROMPT_IMAGE = """You are a professional food photographer.

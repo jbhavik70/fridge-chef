@@ -27,6 +27,10 @@ BnB's Kitchen is not just an AI recipe generator; it's a bridge to a cozy, inter
 - **Natural Language Input:** Users describe what is in their fridge in a warm, interactive textarea.
 - **Meal Type Segment Selector:** Users can filter recipe generation for specific meals: *Any, Breakfast, Lunch, Dinner, Snack, or Sweet Treat*.
 - **Dietary Preference Chips:** Chips to filter out recipes based on common needs: *Vegan, Vegetarian, Gluten-Free, Dairy-Free, Low-Carb, and Nut-Free*.
+- **Gourmet Option Filters:** Extra selectors to fine-tune recipes:
+  - *Cooking Style:* Segments for Any, Comfort Food, Healthy, Quick, Gourmet, and Traditional.
+  - *Available Equipment:* Toggle chips for Stove, Oven, Microwave, Blender, and Air Fryer.
+  - *Time Limit:* Segments for Any time, Under 15 mins, Under 30 mins, and Under 60 mins.
 
 ### 3.2 Gourmet Recipe Generator & Scaler
 - **Warm Grandma Voice:** Encouraging intros, customized step-by-step instructions, and a "Grandma's Secret Tip".
@@ -45,14 +49,26 @@ BnB's Kitchen is not just an AI recipe generator; it's a bridge to a cozy, inter
   - Real-time countdown clock showing time remaining until the session.
   - Easy reservation cancellation with confirmation safety prompts.
 
+### 3.4 Grandma's Wooden Recipe Box (Saved Recipes)
+- **Local Storage Integration:** A recipe box cabinet that lets users save generated recipes locally to their browser's `localStorage`.
+- **Cozy Recipe Cabinet View:** Displays all saved recipes with metadata (title, preparation/cooking time) and a dish thumbnail.
+- **Quick Action Triggers:** Users can click on saved recipes to instantly re-cook (re-render) them, book a reservation directly, or delete them with confirmation.
+
+### 3.5 Interactive Cooking Step Timers
+- **Playable Step Timers:** Stopwatch icons placed next to instruction steps.
+- **Time Duration Auto-Detection:** Automatically scans instruction text (e.g. "simmer for 20 minutes") using regex to initialize the timer duration, defaulting to 5 minutes if no time is detected.
+- **Countdown Widget:** Inline controls (Play/Pause, Reset, Cancel) with a live-updating countdown display.
+- **Audio Chime Synthesis:** Generates a cozy vintage kitchen bell chime natively via the Web Audio API when a timer expires.
+
 ---
 
 ## 4. Scope: What We ARE Building (v2)
 
-- **Dual-View Web App:** Responsive single-page web app with two main tabs: "Grandma's Kitchen" (generator and recipe card) and "My Reservations" (dashboard).
-- **AI recipe & Image pipeline:** Uses `gemini-3.5-flash` for structured recipes (validating input for safety/food status) and `imagen-3.0-generate-002` for realistic dish photographs.
+- **Tri-View Web App:** Responsive single-page web app with three main tabs: "Grandma's Kitchen" (generator and recipe card), "Grandma's Recipe Box" (saved recipes cabinet), and "My Reservations" (dashboard).
+- **AI recipe & Image pipeline:** Uses `gemini-3.5-flash` for structured recipes (validating input for safety/food status, honoring filters) and `imagen-3.0-generate-002` for realistic dish photographs.
 - **SQLite Persistence:** A local sqlite3 database `backend/bookings.db` to save and manage reservations.
-- **Interactive Client State Machine:** Dynamic scaling, ingredient checklist copying, and toast error handlers.
+- **Local Storage Persistence:** Keeps saved recipes persisted across browser sessions under `saved_recipes`.
+- **Interactive Client State Machine:** Dynamic scaling, ingredient checklists, countdown timers, and audio synthesis.
 
 ## 5. Scope: What We Are NOT Building
 
