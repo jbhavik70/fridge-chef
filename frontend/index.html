@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fridge Chef</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="background-layer"></div>
+  
+  <main class="container">
+    <!-- Hero Header -->
+    <header class="hero-header">
+      <img src="/assets/logo.png" alt="BnB's Kitchen Logo" class="logo-img">
+      <h1>BnB's Kitchen</h1>
+      <p class="subtitle">Grandma's gourmet recipes from your leftovers, with a pinch of love.</p>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-navigation">
+      <button type="button" class="tab-btn active" id="tab-kitchen">Grandma's Kitchen</button>
+      <button type="button" class="tab-btn" id="tab-recipe-box">Grandma's Recipe Box</button>
+      <button type="button" class="tab-btn" id="tab-reservations">My Reservations</button>
+    </nav>
+
+    <!-- Grandma's Kitchen view -->
+    <div id="kitchen-view" class="tab-content">
+      <!-- Chef's Console / Input Section -->
+      <section id="input-section" class="card input-card">
+      <div class="card-header">
+        <h2>What's in your fridge, dear?</h2>
+        <p class="card-hint">Tell me what you have, and we'll cook up something delicious.</p>
+      </div>
+      
+      <!-- Fridge Door Textarea Wrapper -->
+      <div class="fridge-door-wrapper">
+        <textarea id="ingredients-input" placeholder="e.g., half an onion, two eggs, wilted spinach, chicken breast..." rows="4" aria-label="Fridge ingredients"></textarea>
+        <div class="fridge-handle"></div>
+      </div>
+
+      <!-- Meal Type Segmented Selector -->
+      <div class="console-group">
+        <label class="console-label">Meal Type</label>
+        <div class="meal-type-selector">
+          <button type="button" class="segment-btn active" data-meal="">Any</button>
+          <button type="button" class="segment-btn" data-meal="Breakfast">Breakfast</button>
+          <button type="button" class="segment-btn" data-meal="Lunch">Lunch</button>
+          <button type="button" class="segment-btn" data-meal="Dinner">Dinner</button>
+          <button type="button" class="segment-btn" data-meal="Snack">Snack</button>
+          <button type="button" class="segment-btn" data-meal="Sweet Treat">Sweet Treat</button>
+        </div>
+      </div>
+
+      <!-- Dietary Preference Chips -->
+      <div class="console-group">
+        <label class="console-label">Dietary Preferences</label>
+        <div class="dietary-chips">
+          <button type="button" class="chip-btn" data-diet="Vegan">Vegan</button>
+          <button type="button" class="chip-btn" data-diet="Vegetarian">Vegetarian</button>
+          <button type="button" class="chip-btn" data-diet="Gluten-Free">Gluten-Free</button>
+          <button type="button" class="chip-btn" data-diet="Dairy-Free">Dairy-Free</button>
+          <button type="button" class="chip-btn" data-diet="Low-Carb">Low-Carb</button>
+          <button type="button" class="chip-btn" data-diet="Nut-Free">Nut-Free</button>
+        </div>
+      </div>
+
+      <!-- Cooking Style Segmented Selector -->
+      <div class="console-group">
+        <label class="console-label">Cooking Style</label>
+        <div class="cooking-style-selector">
+          <button type="button" class="segment-btn active" data-style="">Any</button>
+          <button type="button" class="segment-btn" data-style="Comfort Food">Comfort Food</button>
+          <button type="button" class="segment-btn" data-style="Healthy">Healthy</button>
+          <button type="button" class="segment-btn" data-style="Quick">Quick</button>
+          <button type="button" class="segment-btn" data-style="Gourmet">Gourmet</button>
+          <button type="button" class="segment-btn" data-style="Traditional">Traditional</button>
+        </div>
+      </div>
+
+      <!-- Available Equipment Chips -->
+      <div class="console-group">
+        <label class="console-label">Available Equipment</label>
+        <div class="equipment-chips">
+          <button type="button" class="chip-btn" data-equip="Stove">Stove</button>
+          <button type="button" class="chip-btn" data-equip="Oven">Oven</button>
+          <button type="button" class="chip-btn" data-equip="Microwave">Microwave</button>
+          <button type="button" class="chip-btn" data-equip="Blender">Blender</button>
+          <button type="button" class="chip-btn" data-equip="Air Fryer">Air Fryer</button>
+        </div>
+      </div>
+
+      <!-- Time Limit Segmented Selector -->
+      <div class="console-group">
+        <label class="console-label">Time Limit</label>
+        <div class="time-limit-selector">
+          <button type="button" class="segment-btn active" data-time="">Any time</button>
+          <button type="button" class="segment-btn" data-time="Under 15 mins">Under 15 mins</button>
+          <button type="button" class="segment-btn" data-time="Under 30 mins">Under 30 mins</button>
+          <button type="button" class="segment-btn" data-time="Under 60 mins">Under 60 mins</button>
+        </div>
+      </div>
+
+      <button id="cook-btn" class="primary-btn">Cook!</button>
+      
+      <!-- Inviting Loading State -->
+      <div id="loading-state" class="hidden">
+        <div class="cooking-pot-loader">
+          <svg viewBox="0 0 100 100" class="pot-svg" aria-hidden="true">
+            <!-- Steam Paths -->
+            <path class="steam-path path1" d="M 35 40 Q 30 25 35 15 T 35 5" fill="none" stroke-linecap="round" />
+            <path class="steam-path path2" d="M 50 40 Q 55 25 50 15 T 50 5" fill="none" stroke-linecap="round" />
+            <path class="steam-path path3" d="M 65 40 Q 60 25 65 15 T 65 5" fill="none" stroke-linecap="round" />
+
+            <!-- Bubbles -->
+            <circle class="bubble bubble1" cx="30" cy="60" r="2.5" />
+            <circle class="bubble bubble2" cx="45" cy="65" r="3" />
+            <circle class="bubble bubble3" cx="60" cy="58" r="2" />
+            <circle class="bubble bubble4" cx="70" cy="62" r="2.5" />
+            <circle class="bubble bubble5" cx="38" cy="67" r="1.5" />
+            <circle class="bubble bubble6" cx="55" cy="66" r="2.5" />
+
+            <!-- Pot Handles -->
+            <path d="M 15 60 C 5 60 5 72 15 72" fill="none" stroke="#C24C2C" stroke-width="4" stroke-linecap="round" />
+            <path d="M 85 60 C 95 60 95 72 85 72" fill="none" stroke="#C24C2C" stroke-width="4" stroke-linecap="round" />
+
+            <!-- Pot Body -->
+            <path d="M 20 50 L 80 50 L 75 87 C 75 92 70 95 65 95 L 35 95 C 30 95 25 92 25 87 Z" fill="#D85A38" />
+
+            <!-- Pot Rim -->
+            <rect x="17" y="46" width="66" height="5" rx="2.5" fill="#C24C2C" />
+          </svg>
+        </div>
+        <p id="loading-text">Grandma is putting on her apron...</p>
+      </div>
+    </section>
+
+    <!-- Grandma Warning/Notice Card (for non-food/gibberish inputs) -->
+    <section id="warning-card" class="card warning-card hidden">
+      <div class="warning-avatar">👵🏼</div>
+      <div class="warning-content">
+        <h2 class="warning-title">Oh dear...</h2>
+        <p id="warning-message-text" class="warning-text"></p>
+      </div>
+      <button id="warning-retry-btn" class="secondary-btn">Try Again, Sweetie</button>
+    </section>
+
+    <!-- Gourmet Recipe Result Card Layout -->
+    <section id="result-section" class="card result-card hidden">
+      <!-- aspect-ratio matched image container with steam clearing reveal -->
+      <div class="recipe-image-container" id="recipe-img-container">
+        <img id="recipe-image" src="" alt="Gourmet dish" class="hidden">
+        <div class="steam-overlay" id="steam-overlay">
+          <div class="steam-wave"></div>
+          <div class="steam-wave"></div>
+          <div class="steam-wave"></div>
+          <div class="steam-text">Simmering...</div>
+        </div>
+      </div>
+
+      <div class="recipe-content">
+        <!-- Flavor Profile Tags -->
+        <div id="recipe-tags" class="recipe-tags"></div>
+        
+        <!-- Title and Vibe info -->
+        <div class="recipe-header">
+          <h2 id="recipe-title" class="recipe-title"></h2>
+          <div id="recipe-meta" class="recipe-meta"></div>
+        </div>
+
+        <!-- Grandma's Intro -->
+        <p id="recipe-intro" class="recipe-intro-text"></p>
+
+        <!-- Grandma's Mixed Warning Notice (shows if input had some non-food items filtered out) -->
+        <div id="recipe-mixed-notice" class="mixed-notice-box hidden">
+          <span class="notice-icon">👵🏼</span>
+          <p id="recipe-mixed-notice-text" class="notice-text"></p>
+        </div>
+
+        <!-- Portion Scaler -->
+        <div class="portion-scaler">
+          <span class="scaler-label">Servings:</span>
+          <div class="scaler-controls">
+            <button type="button" id="scale-down-btn" class="scaler-btn" aria-label="Decrease servings">&minus;</button>
+            <span id="serving-count" class="serving-count-num">2</span>
+            <button type="button" id="scale-up-btn" class="scaler-btn" aria-label="Increase servings">&plus;</button>
+          </div>
+        </div>
+
+        <!-- Ingredients Section with Checklist -->
+        <div class="recipe-section">
+          <h3>Ingredients</h3>
+          <p class="section-hint">Check off what you have ready:</p>
+          <ul id="recipe-ingredients" class="ingredients-grid"></ul>
+        </div>
+
+        <!-- Grandma's Secret Callout Box -->
+        <div class="grandma-secret-box">
+          <div class="secret-header">
+            <span class="secret-icon">👵🏼</span>
+            <h4>Grandma's Secret Tip</h4>
+          </div>
+          <p id="grandma-secret-tip-text"></p>
+        </div>
+
+        <!-- Instructions Section -->
+        <div class="recipe-section">
+          <h3>Instructions</h3>
+          <ol id="recipe-instructions" class="instructions-list"></ol>
+        </div>
+
+        <!-- Pantry Staples Accordion -->
+        <details class="pantry-staples-accordion">
+          <summary>Pantry Staples Used</summary>
+          <div class="pantry-staples-content">
+            <p>Grandma assumed you had these basics in your pantry:</p>
+            <ul id="recipe-pantry-staples"></ul>
+          </div>
+        </details>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="recipe-actions">
+        <button id="save-recipe-btn" class="secondary-btn">
+          <span class="btn-icon">💾</span> Save to Recipe Box
+        </button>
+        <button id="share-btn" class="secondary-btn">
+          <span class="btn-icon">📋</span> Copy Recipe
+        </button>
+        <button id="book-btn" class="primary-btn book-trigger-btn">
+          Book Preparation at BnB's Kitchen
+        </button>
+        <button id="reset-btn" class="tertiary-btn">Start Over</button>
+      </div>
+    </section>
+    </div> <!-- End kitchen-view -->
+
+    <!-- Grandma's Recipe Box View -->
+    <div id="recipe-box-view" class="tab-content hidden">
+      <section class="card recipe-box-card">
+        <div class="card-header">
+          <h2>Grandma's Wooden Recipe Box 👵🏼📦</h2>
+          <p class="card-hint">Your cherished recipes, saved with love. Tap any recipe to cook it again!</p>
+        </div>
+        <div id="saved-recipes-list" class="saved-recipes-list">
+          <!-- Dynamically populated saved recipe items -->
+          <div class="empty-recipe-box">
+            <p>Your recipe box is empty, dear. Generate a recipe and save it to keep it here!</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Reservations Dashboard View -->
+    <div id="reservations-view" class="tab-content hidden">
+      <section class="card reservations-card">
+        <div class="card-header">
+          <h2>My Reservations</h2>
+          <p class="card-hint">Your upcoming cooking sessions with Grandma at BnB's Kitchen.</p>
+        </div>
+        <div id="reservations-list" class="reservations-list">
+          <!-- Dynamically populated reservation tickets/receipts -->
+          <div class="empty-reservations">
+            <p>No reservations booked yet, dear. Generate a recipe to book your preparation!</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="booking-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-card card">
+        <button type="button" class="modal-close-btn" id="close-modal-btn" aria-label="Close modal">&times;</button>
+        
+        <!-- Booking Form State -->
+        <div id="modal-form-content">
+          <h2 id="modal-title">Book Preparation</h2>
+          <p class="modal-subtitle">Grandma will prepare your recipe at BnB's Kitchen!</p>
+          
+          <form id="booking-form">
+            <div class="form-group">
+              <label for="booking-name">Name</label>
+              <input type="text" id="booking-name" required placeholder="Your sweet name">
+            </div>
+            <div class="form-group">
+              <label for="booking-email">Email</label>
+              <input type="email" id="booking-email" required placeholder="your.name@example.com">
+            </div>
+            <div class="form-group">
+              <label for="booking-phone">Phone (Optional)</label>
+              <input type="tel" id="booking-phone" placeholder="e.g. (555) 123-4567">
+            </div>
+            <div class="form-group">
+              <label for="booking-leftovers">Leftovers to Bring</label>
+              <textarea id="booking-leftovers" required rows="2" placeholder="Tell Grandma what leftovers you are bringing"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="booking-recipe">Recipe to Prepare</label>
+              <input type="text" id="booking-recipe" required readonly>
+            </div>
+            <div class="form-group">
+              <label for="booking-guests">Guests (1 to 10)</label>
+              <div class="guest-slider-container">
+                <input type="range" id="booking-guests" min="1" max="10" value="2">
+                <span id="guest-count-val">2</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="booking-date">Date</label>
+                <input type="date" id="booking-date" required>
+              </div>
+              <div class="form-group">
+                <label for="booking-time">Time</label>
+                <input type="time" id="booking-time" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="booking-notes">Notes for Grandma (Optional)</label>
+              <textarea id="booking-notes" rows="2" placeholder="Any dietary quirks or allergies?"></textarea>
+            </div>
+            <button type="submit" class="primary-btn">Confirm Booking</button>
+          </form>
+        </div>
+
+        <!-- Receipt Success State Card -->
+        <div id="booking-success-card" class="hidden">
+          <div class="success-icon-container">
+            <div class="checkmark-circle">
+              <div class="checkmark-draw"></div>
+            </div>
+          </div>
+          <h3 class="success-title">Booking Confirmed!</h3>
+          <p class="success-desc">Grandma is excited to cook with you!</p>
+          <div class="receipt-ticket-summary" id="receipt-summary-content">
+            <!-- Dynamically inserted ticket details -->
+          </div>
+          <button type="button" class="secondary-btn" id="success-done-btn">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="error-toast" class="hidden"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
